@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIP Return Calculator — Tax-Aware Mutual Fund Calculator for India</title>
+    <meta name="description" content="Calculate your SIP returns with tax impact. See post-tax corpus, LTCG/STCG breakdown, and educational tax insights for Indian mutual fund investors.">
+    <meta name="keywords" content="SIP calculator, mutual fund calculator, LTCG tax, STCG tax, post-tax returns, India, equity mutual fund, debt mutual fund">
+
+    <meta property="og:title" content="SIP Return Calculator — Tax-Aware">
+    <meta property="og:description" content="See how taxes affect your SIP returns. Equity &amp; debt mutual fund tax calculator for Indian investors.">
+    <meta property="og:type" content="website">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/styles.css">
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "SIP Return Calculator",
+        "description": "Tax-aware SIP return calculator for Indian mutual fund investors. Shows post-tax corpus, LTCG/STCG breakdown, and educational tax insights.",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Any"
+    }
+    </script>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────── -->
+<header class="site-header">
+    <div class="container">
+        <div class="logo" aria-hidden="true">S</div>
+        <div>
+            <h1>SIP Return Calculator</h1>
+            <p>Tax-Aware &bull; Indian Mutual Funds</p>
+        </div>
+    </div>
+</header>
+
+<!-- ── Hero ─────────────────────────────────────────── -->
+<section class="hero">
+    <div class="container">
+        <h2>Know What You Actually Take Home</h2>
+        <p>Most calculators ignore taxes. This one shows your real, post-tax SIP returns so you can plan with clarity.</p>
+    </div>
+</section>
+
+<!-- ── Calculator ──────────────────────────────────── -->
+<section class="container">
+    <div class="calc-grid">
+
+        <!-- Inputs -->
+        <div class="card" id="inputCard">
+            <div id="validationErrors" class="validation-box hidden"></div>
+
+            <div class="form-group">
+                <label for="sipAmount">Monthly SIP Amount</label>
+                <div class="prefix-wrap">
+                    <span class="prefix">₹</span>
+                    <input type="text" id="sipAmount" inputmode="numeric" placeholder="10,000" autocomplete="off">
+                </div>
+                <div class="input-hint">Minimum ₹100</div>
+            </div>
+
+            <div class="form-group">
+                <label for="expectedReturn">Expected Annual Return</label>
+                <div class="suffix-wrap">
+                    <input type="number" id="expectedReturn" min="0.1" max="50" step="0.1" placeholder="12" autocomplete="off">
+                    <span class="suffix">%</span>
+                </div>
+                <div class="input-hint">Historical equity avg: ~12%. Not guaranteed.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="investmentYears">Investment Duration</label>
+                <div class="suffix-wrap">
+                    <input type="number" id="investmentYears" min="1" max="50" step="1" placeholder="10" autocomplete="off">
+                    <span class="suffix">years</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Fund Type</label>
+                <div class="toggle-group">
+                    <input type="radio" name="fundType" id="ftEquity" value="equity" checked>
+                    <label for="ftEquity">Equity Fund</label>
+                    <input type="radio" name="fundType" id="ftDebt" value="debt">
+                    <label for="ftDebt">Debt Fund</label>
+                </div>
+            </div>
+
+            <div class="form-group" id="slabGroup" style="display:none">
+                <label for="slabRate">Your Income Tax Slab</label>
+                <select id="slabRate"></select>
+                <div class="input-hint">Debt fund gains are taxed at your slab rate (post April 2023).</div>
+            </div>
+
+            <button class="btn-primary" id="calculateBtn">Calculate Post-Tax Returns</button>
+        </div>
+
+        <!-- Results -->
+        <div id="resultsSection" style="display:none">
+            <div class="results-grid">
+                <div class="result-card">
+                    <div class="label">Total Invested</div>
+                    <div class="value" id="resInvested">—</div>
+                </div>
+                <div class="result-card accent-green">
+                    <div class="label">Estimated Gains</div>
+                    <div class="value" id="resGains">—</div>
+                    <div class="sub" id="resGainsPct"></div>
+                </div>
+                <div class="result-card accent-red">
+                    <div class="label">Estimated Tax</div>
+                    <div class="value" id="resTax">—</div>
+                    <div class="sub" id="resTaxPct"></div>
+                </div>
+                <div class="result-card">
+                    <div class="label">Pre-Tax Corpus</div>
+                    <div class="value" id="resPreTax">—</div>
+                </div>
+                <div class="result-card hero-card">
+                    <div class="label">Your Estimated Post-Tax Corpus</div>
+                    <div class="value" id="resPostTax">—</div>
+                    <div class="sub">This is the amount you are likely to take home</div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /calc-grid -->
+</section>
+
+<!-- ── Chart ────────────────────────────────────────── -->
+<section class="container chart-section" id="chartSection" style="display:none">
+    <div class="card">
+        <h3>Where Your Money Goes</h3>
+        <div class="chart-wrap">
+            <canvas id="sipChart"></canvas>
+        </div>
+    </div>
+</section>
+
+<!-- ── Tax Breakdown ───────────────────────────────── -->
+<section class="container tax-breakdown" id="taxBreakdownSection" style="display:none">
+    <div class="card" id="taxBreakdownContent"></div>
+</section>
+
+<!-- ── Insights ────────────────────────────────────── -->
+<section class="container insights-section" id="insightsSection" style="display:none">
+    <h3>Tax Insights for Your SIP</h3>
+    <div id="insightsContent"></div>
+</section>
+
+<!-- ── Disclaimer (always visible) ─────────────────── -->
+<section class="container">
+    <div class="disclaimer">
+        <h3>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Important Disclaimer
+        </h3>
+        <p>This calculator is provided for <strong>educational and informational purposes only</strong>. Results are based on assumptions and may differ from actual outcomes.</p>
+        <p>We are not a SEBI-registered investment advisor, financial advisor, tax advisor, or research analyst.</p>
+        <p>This tool does not provide investment, financial, legal, or tax advice.</p>
+        <p>Users should consult qualified professionals before making investment or tax-related decisions.</p>
+        <p>Tax laws, regulations, and rates may change over time. Please verify current regulations before making financial decisions.</p>
+    </div>
+</section>
+
+<!-- ── How It Works ────────────────────────────────── -->
+<section class="container learn-section">
+    <h3>Understanding SIP Returns &amp; Taxation</h3>
+
+    <div class="accordion-item">
+        <div class="accordion-header">How SIP Returns Are Calculated</div>
+        <div class="accordion-body"><div class="accordion-body-inner">
+            <p>A Systematic Investment Plan (SIP) lets you invest a fixed amount every month in a mutual fund. Each monthly installment buys units at the prevailing NAV (Net Asset Value).</p>
+            <p>Returns are calculated using <strong>compound interest</strong>. Each installment grows independently from the date it was invested until the date you redeem. Earlier installments have more time to compound, so they contribute more to the final corpus.</p>
+            <p>This is also why SIPs benefit from <strong>rupee cost averaging</strong> — you buy more units when markets are low and fewer when markets are high, smoothing out volatility over time.</p>
+            <p>The calculator uses this formula for each installment:</p>
+            <p><em>Future Value = Monthly Amount &times; (1 + monthly rate)<sup>months held</sup></em></p>
+            <p>The total corpus is the sum of the future values of all individual installments.</p>
+        </div></div>
+    </div>
+
+    <div class="accordion-item">
+        <div class="accordion-header">How Tax Affects Mutual Fund Returns</div>
+        <div class="accordion-body"><div class="accordion-body-inner">
+            <p>In India, mutual fund gains are taxed when you redeem (sell) your units. The tax rate depends on the <strong>type of fund</strong> and the <strong>holding period</strong> of each installment.</p>
+            <p><strong>Equity Mutual Funds:</strong></p>
+            <ul>
+                <li><strong>STCG (Short Term):</strong> If you hold units for less than 12 months, gains are taxed at 20%.</li>
+                <li><strong>LTCG (Long Term):</strong> If you hold for 12 months or more, gains are taxed at 12.5%. The first ₹1.25 lakh of LTCG per financial year is exempt.</li>
+            </ul>
+            <p><strong>Debt Mutual Funds (purchased after April 2023):</strong></p>
+            <ul>
+                <li>All gains are added to your income and taxed at your income tax slab rate. The earlier indexation benefit is no longer available for new purchases.</li>
+            </ul>
+            <p>A 4% Health &amp; Education Cess is applied on top of the income tax amount.</p>
+        </div></div>
+    </div>
+
+    <div class="accordion-item">
+        <div class="accordion-header">Why Post-Tax Returns Matter</div>
+        <div class="accordion-body"><div class="accordion-body-inner">
+            <p>Most SIP calculators show only pre-tax returns, which can paint an overly optimistic picture. The money you actually receive is after taxes are deducted.</p>
+            <p>For example, if your SIP grows to ₹50 lakh but you owe ₹2.5 lakh in taxes, your real take-home is ₹47.5 lakh. Planning around the pre-tax number could leave you short of your goal.</p>
+            <p>Understanding post-tax returns helps you:</p>
+            <ul>
+                <li>Set more accurate financial goals.</li>
+                <li>Compare different investment options fairly.</li>
+                <li>Plan redemptions more tax-efficiently.</li>
+                <li>Appreciate the impact of holding period on taxation.</li>
+            </ul>
+        </div></div>
+    </div>
+</section>
+
+<!-- ── Footer ──────────────────────────────────────── -->
+<footer class="site-footer">
+    <div class="container">
+        <p>For educational purposes only. Tax rules per Union Budget 2024-25. Verify current regulations before acting.</p>
+    </div>
+</footer>
+
+<!-- ── Scripts ──────────────────────────────────────── -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
+<script src="js/tax-config.js" defer></script>
+<script src="js/calculator.js" defer></script>
+<script src="js/insights.js" defer></script>
+<script src="js/chart.js" defer></script>
+<script src="js/app.js" defer></script>
+</body>
+</html>
