@@ -33,7 +33,7 @@
 <!-- ── Header ──────────────────────────────────────── -->
 <header class="site-header">
     <div class="container">
-        <div class="logo" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" stroke="none"><rect x="2" y="16" width="5" height="6" rx="1"/><rect x="9.5" y="10" width="5" height="12" rx="1"/><rect x="17" y="4" width="5" height="18" rx="1"/></svg></div>
+        <div class="logo" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20 C 7 19, 10 15, 13 11 C 16 7, 18 4, 21 3"/><polyline points="15 3 21 3 21 9"/></svg></div>
         <div>
             <h1>SIP Return Calculator</h1>
             <p>Tax-Aware &bull; Indian Mutual Funds</p>
@@ -84,6 +84,15 @@
             </div>
 
             <div class="form-group">
+                <label for="stepUp">Annual Step-Up</label>
+                <div class="suffix-wrap">
+                    <input type="number" id="stepUp" min="0" max="50" step="1" value="0" autocomplete="off">
+                    <span class="suffix">%</span>
+                </div>
+                <div class="input-hint">Increase SIP amount by this % every year. Default 0% = regular SIP.</div>
+            </div>
+
+            <div class="form-group">
                 <label>Fund Type</label>
                 <div class="toggle-group">
                     <input type="radio" name="fundType" id="ftEquity" value="equity" checked>
@@ -108,6 +117,7 @@
                 <div class="result-card">
                     <div class="label">Total Invested</div>
                     <div class="value" id="resInvested">—</div>
+                    <div class="sub" id="resInvestedSub" style="display:none"></div>
                 </div>
                 <div class="result-card accent-green">
                     <div class="label">Estimated Gains</div>

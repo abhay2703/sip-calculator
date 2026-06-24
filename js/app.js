@@ -7,7 +7,7 @@ function formatINR(n) {
 function $(id) { return document.getElementById(id); }
 
 /* ── DOM refs ──────────────────────────────────────── */
-var elSipAmount, elReturn, elYears, elFundType, elSlabGroup, elSlabRate, elCalcBtn;
+var elSipAmount, elReturn, elYears, elStepUp, elFundType, elSlabGroup, elSlabRate, elCalcBtn;
 var elResults, elChartSection, elTaxBreakdown, elInsights;
 
 /* ── Init ──────────────────────────────────────────── */
@@ -15,6 +15,7 @@ document.addEventListener("DOMContentLoaded", function () {
     elSipAmount = $("sipAmount");
     elReturn    = $("expectedReturn");
     elYears     = $("investmentYears");
+    elStepUp    = $("stepUp");
     elFundType  = document.querySelectorAll('input[name="fundType"]');
     elSlabGroup = $("slabGroup");
     elSlabRate  = $("slabRate");
@@ -74,10 +75,12 @@ function validate() {
     var sip = parseSipAmount();
     var ret = parseFloat(elReturn.value);
     var yrs = parseInt(elYears.value, 10);
+    var stepUp = parseFloat(elStepUp.value) || 0;
 
     if (!sip || sip < 100)  errors.push("Monthly SIP amount must be at least ₹100.");
     if (isNaN(ret) || ret <= 0 || ret > 50) errors.push("Expected return should be between 0.1% and 50%.");
     if (isNaN(yrs) || yrs < 1 || yrs > 50) errors.push("Investment duration should be between 1 and 50 years.");
+    if (stepUp < 0 || stepUp > 50) errors.push("Annual step-up should be between 0% and 50%.");
 
     if (errors.length) {
         showValidationErrors(errors);
@@ -92,6 +95,7 @@ function validate() {
         monthlyAmount: sip,
         annualReturn: ret,
         years: yrs,
+        stepUp: stepUp,
         fundType: fundType,
         debtSlabRate: fundType === "debt" ? parseFloat(elSlabRate.value) : undefined
     };
@@ -140,6 +144,14 @@ function renderResultCards(r) {
 
     var taxPct = r.totalGains > 0 ? ((r.totalTax / r.totalGains) * 100).toFixed(1) : "0";
     $("resTaxPct").textContent = taxPct + "% of gains";
+
+    var investedSub = $("resInvestedSub");
+    if (r.stepUp > 0) {
+        investedSub.textContent = formatINR(r.monthlyAmount) + "/mo → " + formatINR(r.finalMonthlySIP) + "/mo (step-up " + r.stepUp + "%)";
+        investedSub.style.display = "";
+    } else {
+        investedSub.style.display = "none";
+    }
 }
 
 /* ── Tax breakdown ─────────────────────────────────── */
@@ -187,6 +199,9 @@ function renderTaxBreakdown(r) {
 
     html += '<div class="assumptions">';
     html += "<strong>Assumptions Used</strong><ul>";
+    if (r.stepUp > 0) {
+        html += "<li>Monthly SIP increases by " + r.stepUp + "% every year (from " + formatINR(r.monthlyAmount) + " to " + formatINR(r.finalMonthlySIP) + "/month).</li>";
+    }
     html += "<li>All SIP units are redeemed at the end of the investment period (lump-sum redemption).</li>";
     if (isEquity) {
         html += "<li>LTCG exemption of ₹1.25 lakh is applied once (single financial-year redemption).</li>";

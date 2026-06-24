@@ -4,6 +4,7 @@ function calculateSIP(params) {
     var years = params.years;
     var fundType = params.fundType;
     var debtSlabRate = params.debtSlabRate;
+    var stepUpPct = params.stepUp || 0;
 
     var months = years * 12;
     var monthlyRate = annualReturn / 100 / 12;
@@ -14,13 +15,16 @@ function calculateSIP(params) {
     var totalCorpus = 0;
     var stcgGains = 0;
     var ltcgGains = 0;
+    var finalMonthlySIP = monthlyAmount;
 
     for (var i = 1; i <= months; i++) {
+        var yearIndex = Math.floor((i - 1) / 12);
+        var currentSIP = monthlyAmount * Math.pow(1 + stepUpPct / 100, yearIndex);
         var holdingMonths = months - i + 1;
-        var futureValue = monthlyAmount * Math.pow(1 + monthlyRate, holdingMonths);
-        var gain = futureValue - monthlyAmount;
+        var futureValue = currentSIP * Math.pow(1 + monthlyRate, holdingMonths);
+        var gain = futureValue - currentSIP;
 
-        totalInvested += monthlyAmount;
+        totalInvested += currentSIP;
         totalCorpus += futureValue;
 
         if (fundType === "equity") {
@@ -30,6 +34,8 @@ function calculateSIP(params) {
                 stcgGains += gain;
             }
         }
+
+        if (i === months) finalMonthlySIP = currentSIP;
     }
 
     var totalGains = totalCorpus - totalInvested;
@@ -91,6 +97,8 @@ function calculateSIP(params) {
         years: years,
         months: months,
         monthlyAmount: monthlyAmount,
+        finalMonthlySIP: Math.round(finalMonthlySIP),
+        stepUp: stepUpPct,
         annualReturn: annualReturn
     };
 }
