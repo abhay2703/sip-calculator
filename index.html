@@ -58,12 +58,22 @@
             <div id="validationErrors" class="validation-box hidden"></div>
 
             <div class="form-group">
-                <label for="sipAmount">Monthly SIP Amount</label>
+                <label>Investment Mode</label>
+                <div class="toggle-group">
+                    <input type="radio" name="investMode" id="modeSIP" value="sip" checked>
+                    <label for="modeSIP">Monthly SIP</label>
+                    <input type="radio" name="investMode" id="modeLumpsum" value="lumpsum">
+                    <label for="modeLumpsum">Lumpsum</label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="sipAmount" id="amountLabel">Monthly SIP Amount</label>
                 <div class="prefix-wrap">
                     <span class="prefix">₹</span>
                     <input type="text" id="sipAmount" inputmode="numeric" placeholder="10,000" autocomplete="off">
                 </div>
-                <div class="input-hint">Minimum ₹100</div>
+                <div class="input-hint" id="amountHint">Minimum ₹100</div>
             </div>
 
             <div class="form-group">
@@ -83,7 +93,7 @@
                 </div>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" id="stepUpGroup">
                 <label for="stepUp">Annual Step-Up</label>
                 <div class="suffix-wrap">
                     <input type="number" id="stepUp" min="0" max="50" step="1" value="0" autocomplete="off">
@@ -142,6 +152,14 @@
         </div>
 
     </div><!-- /calc-grid -->
+</section>
+
+<!-- ── Step-Up Breakdown ────────────────────────────── -->
+<section class="container step-up-section" id="stepUpSection" style="display:none">
+    <div class="card">
+        <h3>Year-wise SIP Breakdown</h3>
+        <div id="stepUpTableContent"></div>
+    </div>
 </section>
 
 <!-- ── Chart ────────────────────────────────────────── -->

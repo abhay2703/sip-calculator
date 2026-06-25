@@ -198,6 +198,19 @@ input[type="number"] { -moz-appearance: textfield; }
     max-width: 380px; margin: 0 auto; padding: 8px 0 0;
 }
 
+/* ── Step-Up Table ──────────────────────────────────── */
+.step-up-section { margin-top: 36px; }
+.step-up-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.step-up-table th {
+    text-align: left; padding: 10px 8px; font-weight: 600; font-size: 0.78rem;
+    text-transform: uppercase; letter-spacing: .03em;
+    color: var(--text-muted); border-bottom: 2px solid var(--border);
+}
+.step-up-table th:not(:first-child) { text-align: right; }
+.step-up-table td { padding: 9px 8px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+.step-up-table td:not(:first-child) { text-align: right; }
+.step-up-table tr:last-child td { font-weight: 600; border-bottom: 2px solid var(--primary); }
+
 /* ── Tax Breakdown ──────────────────────────────────── */
 .tax-breakdown { margin-top: 36px; }
 .tax-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }

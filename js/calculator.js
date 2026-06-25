@@ -38,25 +38,86 @@ function calculateSIP(params) {
         if (i === months) finalMonthlySIP = currentSIP;
     }
 
-    var totalGains = totalCorpus - totalInvested;
+    return buildResult({
+        totalInvested: totalInvested,
+        totalCorpus: totalCorpus,
+        stcgGains: stcgGains,
+        ltcgGains: ltcgGains,
+        fundType: fundType,
+        debtSlabRate: debtSlabRate,
+        years: years,
+        months: months,
+        monthlyAmount: monthlyAmount,
+        finalMonthlySIP: Math.round(finalMonthlySIP),
+        stepUp: stepUpPct,
+        annualReturn: annualReturn,
+        mode: "sip"
+    });
+}
+
+function calculateLumpsum(params) {
+    var principal = params.monthlyAmount;
+    var annualReturn = params.annualReturn;
+    var years = params.years;
+    var fundType = params.fundType;
+    var debtSlabRate = params.debtSlabRate;
+
+    var config = TAX_CONFIG[fundType];
+    var holdingMonths = years * 12;
+    var totalCorpus = principal * Math.pow(1 + annualReturn / 100, years);
+    var totalGains = totalCorpus - principal;
+
+    var stcgGains = 0;
+    var ltcgGains = 0;
+
+    if (fundType === "equity") {
+        if (holdingMonths >= config.holdingPeriodThreshold) {
+            ltcgGains = totalGains;
+        } else {
+            stcgGains = totalGains;
+        }
+    }
+
+    return buildResult({
+        totalInvested: principal,
+        totalCorpus: totalCorpus,
+        stcgGains: stcgGains,
+        ltcgGains: ltcgGains,
+        fundType: fundType,
+        debtSlabRate: debtSlabRate,
+        years: years,
+        months: holdingMonths,
+        monthlyAmount: principal,
+        finalMonthlySIP: 0,
+        stepUp: 0,
+        annualReturn: annualReturn,
+        mode: "lumpsum"
+    });
+}
+
+function buildResult(r) {
+    var totalGains = r.totalCorpus - r.totalInvested;
+    var config = TAX_CONFIG[r.fundType];
     var taxBreakdown = {};
     var totalTax = 0;
 
-    if (fundType === "equity") {
-        var stcgTax = stcgGains * config.stcg.rate;
-        var ltcgExemptionUsed = Math.min(ltcgGains, config.ltcg.exemptionPerYear);
-        var taxableLTCG = Math.max(0, ltcgGains - config.ltcg.exemptionPerYear);
+    if (r.fundType === "equity") {
+        var stcgTax = r.stcgGains * config.stcg.rate;
+        var ltcgExemptionUsed = Math.min(r.ltcgGains, config.ltcg.exemptionPerYear);
+        var taxableLTCG = Math.max(0, r.ltcgGains - config.ltcg.exemptionPerYear);
         var ltcgTax = taxableLTCG * config.ltcg.rate;
         var baseTax = stcgTax + ltcgTax;
         var cess = baseTax * TAX_CONFIG.cess.rate;
         totalTax = baseTax + cess;
 
-        var stcgInstallments = Math.min(months, holdingThreshold - 1);
-        var ltcgInstallments = Math.max(0, months - stcgInstallments);
+        var stcgInstallments = r.mode === "lumpsum" ? 0 :
+            Math.min(r.months, config.holdingPeriodThreshold - 1);
+        var ltcgInstallments = r.mode === "lumpsum" ? 0 :
+            Math.max(0, r.months - stcgInstallments);
 
         taxBreakdown = {
-            stcgGains: Math.round(stcgGains),
-            ltcgGains: Math.round(ltcgGains),
+            stcgGains: Math.round(r.stcgGains),
+            ltcgGains: Math.round(r.ltcgGains),
             ltcgExemptionUsed: Math.round(ltcgExemptionUsed),
             taxableLTCG: Math.round(taxableLTCG),
             stcgTax: Math.round(stcgTax),
@@ -70,7 +131,7 @@ function calculateSIP(params) {
             ltcgInstallments: ltcgInstallments
         };
     } else {
-        var slabRate = debtSlabRate !== undefined ? debtSlabRate : config.defaultSlabRate;
+        var slabRate = r.debtSlabRate !== undefined ? r.debtSlabRate : config.defaultSlabRate;
         var baseTax = totalGains * slabRate;
         var cess = baseTax * TAX_CONFIG.cess.rate;
         totalTax = baseTax + cess;
@@ -85,20 +146,21 @@ function calculateSIP(params) {
     }
 
     return {
-        totalInvested: Math.round(totalInvested),
-        totalCorpus: Math.round(totalCorpus),
+        totalInvested: Math.round(r.totalInvested),
+        totalCorpus: Math.round(r.totalCorpus),
         totalGains: Math.round(totalGains),
-        stcgGains: Math.round(stcgGains),
-        ltcgGains: Math.round(ltcgGains),
+        stcgGains: Math.round(r.stcgGains),
+        ltcgGains: Math.round(r.ltcgGains),
         totalTax: Math.round(totalTax),
-        postTaxCorpus: Math.round(totalCorpus - totalTax),
+        postTaxCorpus: Math.round(r.totalCorpus - totalTax),
         taxBreakdown: taxBreakdown,
-        fundType: fundType,
-        years: years,
-        months: months,
-        monthlyAmount: monthlyAmount,
-        finalMonthlySIP: Math.round(finalMonthlySIP),
-        stepUp: stepUpPct,
-        annualReturn: annualReturn
+        fundType: r.fundType,
+        years: r.years,
+        months: r.months,
+        monthlyAmount: r.monthlyAmount,
+        finalMonthlySIP: r.finalMonthlySIP,
+        stepUp: r.stepUp,
+        annualReturn: r.annualReturn,
+        mode: r.mode
     };
 }
