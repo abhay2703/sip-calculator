@@ -1,12 +1,12 @@
 function calculateSIP(params) {
-    var monthlyAmount = params.monthlyAmount;
+    var baseAmount = params.monthlyAmount;
     var annualReturn = params.annualReturn;
     var years = params.years;
     var fundType = params.fundType;
     var debtSlabRate = params.debtSlabRate;
     var stepUpPct = params.stepUp || 0;
+    var isYearly = params.mode === "yearly";
 
-    var months = years * 12;
     var monthlyRate = annualReturn / 100 / 12;
     var config = TAX_CONFIG[fundType];
     var holdingThreshold = config.holdingPeriodThreshold;
@@ -15,27 +15,48 @@ function calculateSIP(params) {
     var totalCorpus = 0;
     var stcgGains = 0;
     var ltcgGains = 0;
-    var finalMonthlySIP = monthlyAmount;
+    var finalSIP = baseAmount;
+    var totalMonths = years * 12;
 
-    for (var i = 1; i <= months; i++) {
-        var yearIndex = Math.floor((i - 1) / 12);
-        var currentSIP = monthlyAmount * Math.pow(1 + stepUpPct / 100, yearIndex);
-        var holdingMonths = months - i + 1;
-        var futureValue = currentSIP * Math.pow(1 + monthlyRate, holdingMonths);
-        var gain = futureValue - currentSIP;
+    if (isYearly) {
+        for (var y = 1; y <= years; y++) {
+            var currentSIP = baseAmount * Math.pow(1 + stepUpPct / 100, y - 1);
+            var holdingMonths = (years - y + 1) * 12;
+            var futureValue = currentSIP * Math.pow(1 + monthlyRate, holdingMonths);
+            var gain = futureValue - currentSIP;
 
-        totalInvested += currentSIP;
-        totalCorpus += futureValue;
+            totalInvested += currentSIP;
+            totalCorpus += futureValue;
 
-        if (fundType === "equity") {
-            if (holdingMonths >= holdingThreshold) {
-                ltcgGains += gain;
-            } else {
-                stcgGains += gain;
+            if (fundType === "equity") {
+                if (holdingMonths >= holdingThreshold) {
+                    ltcgGains += gain;
+                } else {
+                    stcgGains += gain;
+                }
             }
+            if (y === years) finalSIP = currentSIP;
         }
+    } else {
+        for (var i = 1; i <= totalMonths; i++) {
+            var yearIndex = Math.floor((i - 1) / 12);
+            var currentSIP = baseAmount * Math.pow(1 + stepUpPct / 100, yearIndex);
+            var holdingMonths = totalMonths - i + 1;
+            var futureValue = currentSIP * Math.pow(1 + monthlyRate, holdingMonths);
+            var gain = futureValue - currentSIP;
 
-        if (i === months) finalMonthlySIP = currentSIP;
+            totalInvested += currentSIP;
+            totalCorpus += futureValue;
+
+            if (fundType === "equity") {
+                if (holdingMonths >= holdingThreshold) {
+                    ltcgGains += gain;
+                } else {
+                    stcgGains += gain;
+                }
+            }
+            if (i === totalMonths) finalSIP = currentSIP;
+        }
     }
 
     return buildResult({
@@ -46,12 +67,12 @@ function calculateSIP(params) {
         fundType: fundType,
         debtSlabRate: debtSlabRate,
         years: years,
-        months: months,
-        monthlyAmount: monthlyAmount,
-        finalMonthlySIP: Math.round(finalMonthlySIP),
+        months: totalMonths,
+        monthlyAmount: baseAmount,
+        finalMonthlySIP: Math.round(finalSIP),
         stepUp: stepUpPct,
         annualReturn: annualReturn,
-        mode: "sip"
+        mode: params.mode
     });
 }
 
@@ -63,8 +84,9 @@ function calculateLumpsum(params) {
     var debtSlabRate = params.debtSlabRate;
 
     var config = TAX_CONFIG[fundType];
+    var monthlyRate = annualReturn / 100 / 12;
     var holdingMonths = years * 12;
-    var totalCorpus = principal * Math.pow(1 + annualReturn / 100, years);
+    var totalCorpus = principal * Math.pow(1 + monthlyRate, holdingMonths);
     var totalGains = totalCorpus - principal;
 
     var stcgGains = 0;
@@ -95,6 +117,41 @@ function calculateLumpsum(params) {
     });
 }
 
+function generateGrowthData(params) {
+    var monthlyRate = params.annualReturn / 100 / 12;
+    var stepUpPct = params.stepUp || 0;
+    var data = [{ year: 0, invested: 0, corpus: 0 }];
+
+    for (var y = 1; y <= params.years; y++) {
+        var invested = 0;
+        var corpus = 0;
+        var monthsElapsed = y * 12;
+
+        if (params.mode === "lumpsum") {
+            invested = params.monthlyAmount;
+            corpus = params.monthlyAmount * Math.pow(1 + monthlyRate, monthsElapsed);
+        } else if (params.mode === "yearly") {
+            for (var yi = 1; yi <= y; yi++) {
+                var amount = params.monthlyAmount * Math.pow(1 + stepUpPct / 100, yi - 1);
+                var holdMonths = (y - yi + 1) * 12;
+                invested += amount;
+                corpus += amount * Math.pow(1 + monthlyRate, holdMonths);
+            }
+        } else {
+            for (var m = 1; m <= monthsElapsed; m++) {
+                var yearIdx = Math.floor((m - 1) / 12);
+                var amount = params.monthlyAmount * Math.pow(1 + stepUpPct / 100, yearIdx);
+                invested += amount;
+                corpus += amount * Math.pow(1 + monthlyRate, monthsElapsed - m + 1);
+            }
+        }
+
+        data.push({ year: y, invested: Math.round(invested), corpus: Math.round(corpus) });
+    }
+
+    return data;
+}
+
 function buildResult(r) {
     var totalGains = r.totalCorpus - r.totalInvested;
     var config = TAX_CONFIG[r.fundType];
@@ -110,9 +167,9 @@ function buildResult(r) {
         var cess = baseTax * TAX_CONFIG.cess.rate;
         totalTax = baseTax + cess;
 
-        var stcgInstallments = r.mode === "lumpsum" ? 0 :
+        var stcgInstallments = r.mode === "lumpsum" || r.mode === "yearly" ? 0 :
             Math.min(r.months, config.holdingPeriodThreshold - 1);
-        var ltcgInstallments = r.mode === "lumpsum" ? 0 :
+        var ltcgInstallments = r.mode === "lumpsum" || r.mode === "yearly" ? 0 :
             Math.max(0, r.months - stcgInstallments);
 
         taxBreakdown = {

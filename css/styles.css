@@ -194,8 +194,16 @@ input[type="number"] { -moz-appearance: textfield; }
 
 /* ── Chart Section ──────────────────────────────────── */
 .chart-section { margin-top: 36px; }
+.charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 24px;
+}
 .chart-wrap {
-    max-width: 380px; margin: 0 auto; padding: 8px 0 0;
+    max-width: 320px; margin: 0 auto; padding: 8px 0 0;
+}
+.chart-wrap-wide {
+    padding: 8px 0 0;
 }
 
 /* ── Step-Up Table ──────────────────────────────────── */
@@ -318,7 +326,8 @@ input[type="number"] { -moz-appearance: textfield; }
     .result-card.hero-card .value { font-size: 1.45rem; }
     .card { padding: 22px 18px; }
     .insight-card { flex-direction: column; gap: 10px; }
-    .chart-wrap { max-width: 300px; }
+    .charts-grid { grid-template-columns: 1fr; }
+    .chart-wrap { max-width: 280px; }
 }
 
 @media (max-width: 480px) {

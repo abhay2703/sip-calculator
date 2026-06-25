@@ -62,11 +62,17 @@ function getMode() {
 }
 
 function onModeChange() {
-    var isLumpsum = getMode() === "lumpsum";
-    elAmountLabel.textContent = isLumpsum ? "Investment Amount" : "Monthly SIP Amount";
-    elAmountHint.textContent  = isLumpsum ? "One-time investment amount" : "Minimum ₹100";
-    elSipAmount.placeholder   = isLumpsum ? "5,00,000" : "10,000";
-    elStepUpGroup.style.display = isLumpsum ? "none" : "";
+    var mode = getMode();
+    var labels = {
+        monthly: { label: "Monthly SIP Amount", hint: "Minimum ₹100", placeholder: "10,000" },
+        yearly:  { label: "Yearly SIP Amount",  hint: "Amount invested once every year", placeholder: "1,20,000" },
+        lumpsum: { label: "Investment Amount",   hint: "One-time investment amount", placeholder: "5,00,000" }
+    };
+    var cfg = labels[mode];
+    elAmountLabel.textContent = cfg.label;
+    elAmountHint.textContent  = cfg.hint;
+    elSipAmount.placeholder   = cfg.placeholder;
+    elStepUpGroup.style.display = mode === "lumpsum" ? "none" : "";
 }
 
 /* ── Slab dropdown ─────────────────────────────────── */
@@ -98,12 +104,12 @@ function validate() {
     var ret = parseFloat(elReturn.value);
     var yrs = parseInt(elYears.value, 10);
     var mode = getMode();
-    var stepUp = mode === "sip" ? (parseFloat(elStepUp.value) || 0) : 0;
+    var stepUp = mode !== "lumpsum" ? (parseFloat(elStepUp.value) || 0) : 0;
 
     if (!amount || amount < 100)  errors.push("Investment amount must be at least ₹100.");
     if (isNaN(ret) || ret <= 0 || ret > 50) errors.push("Expected return should be between 0.1% and 50%.");
     if (isNaN(yrs) || yrs < 1 || yrs > 50) errors.push("Investment duration should be between 1 and 50 years.");
-    if (mode === "sip" && (stepUp < 0 || stepUp > 50)) errors.push("Annual step-up should be between 0% and 50%.");
+    if (mode !== "lumpsum" && (stepUp < 0 || stepUp > 50)) errors.push("Annual step-up should be between 0% and 50%.");
 
     if (errors.length) {
         showValidationErrors(errors);
@@ -142,9 +148,10 @@ function runCalculation() {
     if (!params) return;
 
     var result = params.mode === "lumpsum" ? calculateLumpsum(params) : calculateSIP(params);
+    var growthData = generateGrowthData(params);
 
     renderResultCards(result);
-    renderChart(result);
+    renderChart(result, growthData);
     renderTaxBreakdown(result);
     renderInsights(result);
     renderStepUpTable(result);
@@ -172,8 +179,9 @@ function renderResultCards(r) {
     $("resTaxPct").textContent = taxPct + "% of gains";
 
     var investedSub = $("resInvestedSub");
-    if (r.stepUp > 0 && r.mode === "sip") {
-        investedSub.textContent = formatINR(r.monthlyAmount) + "/mo → " + formatINR(r.finalMonthlySIP) + "/mo (step-up " + r.stepUp + "%)";
+    if (r.stepUp > 0 && r.mode !== "lumpsum") {
+        var freq = r.mode === "yearly" ? "/yr" : "/mo";
+        investedSub.textContent = formatINR(r.monthlyAmount) + freq + " → " + formatINR(r.finalMonthlySIP) + freq + " (step-up " + r.stepUp + "%)";
         investedSub.style.display = "";
     } else {
         investedSub.style.display = "none";
@@ -182,7 +190,7 @@ function renderResultCards(r) {
 
 /* ── Step-up yearly table ──────────────────────────── */
 function renderStepUpTable(r) {
-    if (r.mode !== "sip" || r.stepUp <= 0) {
+    if (r.mode === "lumpsum" || r.stepUp <= 0) {
         elStepUpSection.style.display = "none";
         return;
     }
@@ -214,18 +222,24 @@ function renderTaxBreakdown(r) {
     var isEquity = r.fundType === "equity";
     var config = TAX_CONFIG[r.fundType];
     var isLumpsum = r.mode === "lumpsum";
+    var isYearly = r.mode === "yearly";
+    var modeLabels = { monthly: "Monthly SIP", yearly: "Yearly SIP", lumpsum: "Lumpsum" };
 
     html += '<h3>Tax Calculation Breakdown</h3>';
     html += '<table class="tax-table"><tbody>';
 
     if (isEquity) {
         html += row("Fund Type", config.label);
-        html += row("Investment Mode", isLumpsum ? "Lumpsum" : "SIP");
+        html += row("Investment Mode", modeLabels[r.mode] || "SIP");
         html += row("Investment Duration", r.years + " years (" + r.months + " months)");
 
-        if (isLumpsum) {
-            var holdingType = r.months >= config.holdingPeriodThreshold ? "LTCG" : "STCG";
-            html += row("Holding Classification", holdingType + " (held " + r.months + " months)");
+        if (isLumpsum || isYearly) {
+            if (isYearly) {
+                html += row("Holding", "Each installment held ≥ 12 months → all LTCG");
+            } else {
+                var holdingType = r.months >= config.holdingPeriodThreshold ? "LTCG" : "STCG";
+                html += row("Holding Classification", holdingType + " (held " + r.months + " months)");
+            }
             html += rowSep();
             if (tb.ltcgGains > 0) {
                 html += rowBold("Long Term Capital Gains (LTCG)");
@@ -276,7 +290,9 @@ function renderTaxBreakdown(r) {
     html += '<div class="assumptions">';
     html += "<strong>Assumptions Used</strong><ul>";
     if (!isLumpsum && r.stepUp > 0) {
-        html += "<li>Monthly SIP increases by " + r.stepUp + "% every year (from " + formatINR(r.monthlyAmount) + " to " + formatINR(r.finalMonthlySIP) + "/month).</li>";
+        var freqLabel = isYearly ? "Yearly" : "Monthly";
+        var freqSuffix = isYearly ? "/year" : "/month";
+        html += "<li>" + freqLabel + " SIP increases by " + r.stepUp + "% every year (from " + formatINR(r.monthlyAmount) + " to " + formatINR(r.finalMonthlySIP) + freqSuffix + ").</li>";
     }
     if (isLumpsum) {
         html += "<li>One-time investment of " + formatINR(r.totalInvested) + " held for " + r.years + " years.</li>";

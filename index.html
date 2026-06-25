@@ -60,8 +60,10 @@
             <div class="form-group">
                 <label>Investment Mode</label>
                 <div class="toggle-group">
-                    <input type="radio" name="investMode" id="modeSIP" value="sip" checked>
-                    <label for="modeSIP">Monthly SIP</label>
+                    <input type="radio" name="investMode" id="modeMonthly" value="monthly" checked>
+                    <label for="modeMonthly">Monthly SIP</label>
+                    <input type="radio" name="investMode" id="modeYearly" value="yearly">
+                    <label for="modeYearly">Yearly SIP</label>
                     <input type="radio" name="investMode" id="modeLumpsum" value="lumpsum">
                     <label for="modeLumpsum">Lumpsum</label>
                 </div>
@@ -162,12 +164,20 @@
     </div>
 </section>
 
-<!-- ── Chart ────────────────────────────────────────── -->
+<!-- ── Charts ───────────────────────────────────────── -->
 <section class="container chart-section" id="chartSection" style="display:none">
-    <div class="card">
-        <h3>Where Your Money Goes</h3>
-        <div class="chart-wrap">
-            <canvas id="sipChart"></canvas>
+    <div class="charts-grid">
+        <div class="card">
+            <h3>Where Your Money Goes</h3>
+            <div class="chart-wrap">
+                <canvas id="sipChart"></canvas>
+            </div>
+        </div>
+        <div class="card">
+            <h3>Growth Over the Years</h3>
+            <div class="chart-wrap-wide">
+                <canvas id="growthChart"></canvas>
+            </div>
         </div>
     </div>
 </section>

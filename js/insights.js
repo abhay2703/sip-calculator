@@ -48,7 +48,7 @@ function generateInsights(result) {
 
     // ── Equity-specific holding period insights ──
     if (fundType === "equity") {
-        if (mode === "sip") {
+        if (mode !== "lumpsum") {
             var ltcgPct = totalGains > 0 ? (tb.ltcgGains / totalGains * 100) : 0;
             if (years <= 1) {
                 pool.push({ score: 85, icon: "clock", title: "All Gains Taxed at 20%",
@@ -121,7 +121,7 @@ function generateInsights(result) {
     }
 
     // ── Step-up insight ──
-    if (stepUp > 0 && mode === "sip") {
+    if (stepUp > 0 && mode !== "lumpsum") {
         var flatInvested = result.monthlyAmount * result.months;
         var extraFromStepUp = totalInvested - flatInvested;
         pool.push({ score: 72, icon: "chart", title: "Step-Up Boosted Your Investment",
